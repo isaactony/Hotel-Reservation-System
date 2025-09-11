@@ -52,13 +52,42 @@ A comprehensive hotel reservation management system built with Java Spring Boot 
    mvn clean install
    ```
 
+## Quick Start (Recommended)
+
+### 🚀 One-Click Startup Scripts
+
+The easiest way to run the application is using the provided startup scripts:
+
+#### For Mac/Linux:
+```bash
+./start.sh
+```
+
+#### For Windows:
+```cmd
+start.bat
+```
+
+These scripts will:
+- ✅ Check system requirements (Java 17+, Maven 3.6+)
+- ✅ Compile the project automatically
+- ✅ Start the Spring Boot backend on port 8081
+- ✅ Wait for backend to be ready
+- ✅ Launch the JavaFX frontend
+- ✅ Display sample login credentials
+- ✅ Handle cleanup when closing
+
+## Manual Setup (Alternative)
+
+If you prefer to run components separately:
+
 3. **Run the Spring Boot backend**
    ```bash
    mvn spring-boot:run
    ```
-   The backend will start on `http://localhost:8080`
+   The backend will start on `http://127.0.0.1:8081`
 
-4. **Run the JavaFX application**
+4. **Run the JavaFX application** (in a new terminal)
    ```bash
    mvn javafx:run
    ```
@@ -71,6 +100,20 @@ A comprehensive hotel reservation management system built with Java Spring Boot 
 
 ### Starting the Application
 
+#### Option 1: Quick Start (Recommended)
+Use the startup scripts for the easiest experience:
+
+**Mac/Linux:**
+```bash
+./start.sh
+```
+
+**Windows:**
+```cmd
+start.bat
+```
+
+#### Option 2: Manual Start
 1. **Start the Spring Boot server** first (it will initialize sample data automatically)
 2. **Launch the JavaFX application** using the launcher
 3. **Choose your role** (Admin or Visitor)
@@ -114,7 +157,7 @@ A comprehensive hotel reservation management system built with Java Spring Boot 
 ## Database Access
 
 The application uses H2 in-memory database. You can access the H2 console at:
-- URL: `http://localhost:8080/h2-console`
+- URL: `http://localhost:8081/h2-console`
 - JDBC URL: `jdbc:h2:mem:hoteldb`
 - Username: `sa`
 - Password: `password`
@@ -174,7 +217,7 @@ The system automatically creates sample data including:
    - Use the Maven JavaFX plugin: `mvn javafx:run`
 
 2. **Port Already in Use**
-   - Change the port in `application.properties` if 8080 is occupied
+   - Change the port in `application.properties` if 8081 is occupied
    - Update the base URL in JavaFX applications accordingly
 
 3. **Database Connection Issues**
@@ -186,7 +229,7 @@ The system automatically creates sample data including:
 - The system uses in-memory H2 database, so data is lost when the application restarts
 - For production use, configure a persistent database (MySQL, PostgreSQL, etc.)
 - Authentication is basic HTTP authentication - consider implementing JWT for production
-- The JavaFX applications assume the backend is running on localhost:8080
+- The JavaFX applications assume the backend is running on localhost:8081
 
 ## Future Enhancements
 
