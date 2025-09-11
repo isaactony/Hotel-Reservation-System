@@ -22,4 +22,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     
     @Query("SELECT r FROM Reservation r WHERE r.visitor.id = :visitorId AND r.status IN ('CONFIRMED', 'CHECKED_IN', 'PENDING')")
     List<Reservation> findActiveReservationsByVisitor(@Param("visitorId") Long visitorId);
+    
+    @Query("SELECT COUNT(r) > 0 FROM Reservation r WHERE r.room.id = :roomId AND r.status IN ('CONFIRMED', 'CHECKED_IN', 'PENDING')")
+    boolean hasActiveReservations(@Param("roomId") Long roomId);
 }

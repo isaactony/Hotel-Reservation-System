@@ -89,6 +89,10 @@ public class AdminDashboard extends Application {
         });
         fileMenu.getItems().add(refreshItem);
         
+        MenuItem logoutItem = new MenuItem("Logout");
+        logoutItem.setOnAction(e -> logout());
+        fileMenu.getItems().add(logoutItem);
+        
         Menu helpMenu = new Menu("Help");
         MenuItem aboutItem = new MenuItem("About");
         aboutItem.setOnAction(e -> showAboutDialog());
@@ -168,7 +172,10 @@ public class AdminDashboard extends Application {
         Button addRoomBtn = new Button("Add Room");
         addRoomBtn.setOnAction(e -> showAddRoomDialog());
         
-        controls.getChildren().addAll(refreshBtn, addRoomBtn);
+        Button deleteRoomBtn = new Button("Delete Room");
+        deleteRoomBtn.setOnAction(e -> deleteSelectedRoom());
+        
+        controls.getChildren().addAll(refreshBtn, addRoomBtn, deleteRoomBtn);
         
         // Table
         roomTable = new TableView<>();
@@ -474,6 +481,47 @@ public class AdminDashboard extends Application {
         }
     }
 
+    private void deleteSelectedRoom() {
+        Room selectedRoom = roomTable.getSelectionModel().getSelectedItem();
+        if (selectedRoom == null) {
+            showErrorDialog("Please select a room to delete.");
+            return;
+        }
+        
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Delete Room");
+        confirmAlert.setHeaderText("Confirm Deletion");
+        confirmAlert.setContentText("Are you sure you want to delete room " + selectedRoom.getRoomNumber() + " (" + selectedRoom.getRoomType() + ")?");
+        
+        confirmAlert.showAndWait().ifPresent(dialogResponse -> {
+            if (dialogResponse == ButtonType.OK) {
+                try {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(baseUrl + "/rooms/" + selectedRoom.getId()))
+                            .DELETE()
+                            .build();
+                    
+                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                    
+                    if (response.statusCode() == 200) {
+                        loadRooms(); // Refresh the table
+                        showInfoDialog("Room deleted successfully.");
+                    } else {
+                        // Parse error message from response
+                        String errorMessage = response.body();
+                        if (errorMessage.contains("active bookings")) {
+                            showErrorDialog("Cannot delete room " + selectedRoom.getRoomNumber() + " because it has active bookings.");
+                        } else {
+                            showErrorDialog("Failed to delete room: " + errorMessage);
+                        }
+                    }
+                } catch (IOException | InterruptedException e) {
+                    showErrorDialog("Error deleting room: " + e.getMessage());
+                }
+            }
+        });
+    }
+
     private void showErrorDialog(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
@@ -496,6 +544,30 @@ public class AdminDashboard extends Application {
         alert.setHeaderText("Hotel Reservation System");
         alert.setContentText("Admin Dashboard v1.0\n\nA comprehensive hotel reservation management system built with JavaFX and Spring Boot.");
         alert.showAndWait();
+    }
+
+    private void logout() {
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Logout");
+        confirmAlert.setHeaderText("Confirm Logout");
+        confirmAlert.setContentText("Are you sure you want to logout?");
+        
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                // Close current window and return to login
+                Stage currentStage = (Stage) reservationTable.getScene().getWindow();
+                currentStage.close();
+                
+                // Launch login screen
+                try {
+                    com.hotel.javafx.auth.LoginScreen loginScreen = new com.hotel.javafx.auth.LoginScreen();
+                    Stage loginStage = new Stage();
+                    loginScreen.start(loginStage);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public static void main(String[] args) {

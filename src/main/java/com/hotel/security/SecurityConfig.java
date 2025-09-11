@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/rooms/**").permitAll()
                 .requestMatchers("/api/reservations/**").permitAll()
+                .requestMatchers("/api/invoices/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/visitor/**").hasRole("VISITOR")
                 .anyRequest().authenticated()

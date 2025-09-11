@@ -3,6 +3,7 @@ package com.hotel.service;
 import com.hotel.dto.RoomFilterRequest;
 import com.hotel.entity.Room;
 import com.hotel.repository.RoomRepository;
+import com.hotel.repository.ReservationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,9 @@ public class RoomService {
 
     @Autowired
     private RoomRepository roomRepository;
+
+    @Autowired
+    private ReservationRepository reservationRepository;
 
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
@@ -67,7 +71,21 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
-    public void deleteRoom(Long id) {
+    public boolean deleteRoom(Long id) {
+        // Check if room exists
+        Optional<Room> roomOpt = roomRepository.findById(id);
+        if (roomOpt.isEmpty()) {
+            throw new RuntimeException("Room not found");
+        }
+        
+        // Check if room has active reservations
+        boolean hasActiveReservations = reservationRepository.hasActiveReservations(id);
+        if (hasActiveReservations) {
+            return false; // Cannot delete room with active reservations
+        }
+        
+        // Delete the room
         roomRepository.deleteById(id);
+        return true; // Successfully deleted
     }
 }

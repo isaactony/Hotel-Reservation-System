@@ -29,6 +29,9 @@ public class ReservationService {
     @Autowired
     private VisitorRepository visitorRepository;
 
+    @Autowired
+    private InvoiceService invoiceService;
+
     public Reservation createReservation(Long visitorId, Long roomId, LocalDate checkInDate, LocalDate checkOutDate, Integer numberOfGuests, String specialRequests) {
         Visitor visitor = visitorRepository.findById(visitorId)
                 .orElseThrow(() -> new RuntimeException("Visitor not found"));
@@ -50,7 +53,17 @@ public class ReservationService {
         reservation.setTotalAmount(totalAmount);
         reservation.setStatus(ReservationStatus.CONFIRMED);
 
-        return reservationRepository.save(reservation);
+        Reservation savedReservation = reservationRepository.save(reservation);
+        
+        // Automatically create invoice for the reservation
+        try {
+            invoiceService.createInvoiceForReservation(savedReservation.getId());
+        } catch (Exception e) {
+            // Log error but don't fail the reservation creation
+            System.err.println("Failed to create invoice for reservation " + savedReservation.getId() + ": " + e.getMessage());
+        }
+        
+        return savedReservation;
     }
 
     public List<Reservation> getReservationsByVisitor(Long visitorId) {

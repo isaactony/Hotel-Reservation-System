@@ -130,4 +130,21 @@ public class RoomController {
         Map<String, Boolean> response = Map.of("inWishlist", inWishlist);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteRoom(@PathVariable Long id) {
+        try {
+            boolean deleted = roomService.deleteRoom(id);
+            if (deleted) {
+                Map<String, String> response = Map.of("message", "Room deleted successfully");
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, String> error = Map.of("error", "Room cannot be deleted because it has active bookings");
+                return ResponseEntity.badRequest().body(error);
+            }
+        } catch (Exception e) {
+            Map<String, String> error = Map.of("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }

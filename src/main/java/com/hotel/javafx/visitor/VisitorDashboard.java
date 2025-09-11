@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.hotel.dto.ReservationRequest;
 import com.hotel.dto.ReservationResponse;
+import com.hotel.dto.InvoiceResponse;
 import com.hotel.entity.Room;
+import com.hotel.javafx.invoice.InvoiceViewer;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -37,6 +39,9 @@ public class VisitorDashboard extends Application {
     private TableView<ReservationResponse> myReservationsTable;
     private ObservableList<Room> availableRooms;
     private ObservableList<ReservationResponse> myReservations;
+    
+    private TableView<InvoiceResponse> invoiceTable;
+    private ObservableList<InvoiceResponse> invoices;
     
     private Long currentVisitorId;
 
@@ -72,7 +77,12 @@ public class VisitorDashboard extends Application {
         reservationsTab.setContent(createMyReservationsTab());
         reservationsTab.setClosable(false);
         
-        tabPane.getTabs().addAll(searchTab, reservationsTab);
+        // My Invoices tab
+        Tab invoicesTab = new Tab("My Invoices");
+        invoicesTab.setContent(createMyInvoicesTab());
+        invoicesTab.setClosable(false);
+        
+        tabPane.getTabs().addAll(searchTab, reservationsTab, invoicesTab);
         mainLayout.setCenter(tabPane);
         
         Scene scene = new Scene(mainLayout, 1200, 800);
@@ -96,6 +106,10 @@ public class VisitorDashboard extends Application {
             loadMyReservations();
         });
         fileMenu.getItems().add(refreshItem);
+        
+        MenuItem logoutItem = new MenuItem("Logout");
+        logoutItem.setOnAction(e -> logout());
+        fileMenu.getItems().add(logoutItem);
         
         Menu helpMenu = new Menu("Help");
         MenuItem aboutItem = new MenuItem("About");
@@ -449,6 +463,156 @@ public class VisitorDashboard extends Application {
         alert.setHeaderText("Hotel Reservation System");
         alert.setContentText("Visitor Dashboard v1.0\n\nA comprehensive hotel reservation management system built with JavaFX and Spring Boot.");
         alert.showAndWait();
+    }
+
+    private void logout() {
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Logout");
+        confirmAlert.setHeaderText("Confirm Logout");
+        confirmAlert.setContentText("Are you sure you want to logout?");
+        
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                // Close current window and return to login
+                Stage currentStage = (Stage) availableRoomsTable.getScene().getWindow();
+                currentStage.close();
+                
+                // Launch login screen
+                try {
+                    com.hotel.javafx.auth.LoginScreen loginScreen = new com.hotel.javafx.auth.LoginScreen();
+                    Stage loginStage = new Stage();
+                    loginScreen.start(loginStage);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private VBox createMyInvoicesTab() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+        
+        // Title
+        Label title = new Label("My Invoices");
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        
+        // Controls
+        HBox controls = new HBox(10);
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setOnAction(e -> loadMyInvoices());
+        
+        controls.getChildren().addAll(refreshBtn);
+        
+        // Table
+        TableView<InvoiceResponse> invoiceTable = new TableView<>();
+        ObservableList<InvoiceResponse> invoices = FXCollections.observableArrayList();
+        invoiceTable.setItems(invoices);
+        
+        // Table columns
+        TableColumn<InvoiceResponse, String> invoiceNumberCol = new TableColumn<>("Invoice #");
+        invoiceNumberCol.setCellValueFactory(new PropertyValueFactory<>("invoiceNumber"));
+        invoiceNumberCol.setPrefWidth(120);
+        
+        TableColumn<InvoiceResponse, String> roomCol = new TableColumn<>("Room");
+        roomCol.setCellValueFactory(new PropertyValueFactory<>("roomNumber"));
+        roomCol.setPrefWidth(80);
+        
+        TableColumn<InvoiceResponse, String> checkInCol = new TableColumn<>("Check-in");
+        checkInCol.setCellValueFactory(cellData -> {
+            InvoiceResponse invoice = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(
+                invoice.getCheckInDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+            );
+        });
+        checkInCol.setPrefWidth(100);
+        
+        TableColumn<InvoiceResponse, String> checkOutCol = new TableColumn<>("Check-out");
+        checkOutCol.setCellValueFactory(cellData -> {
+            InvoiceResponse invoice = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(
+                invoice.getCheckOutDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+            );
+        });
+        checkOutCol.setPrefWidth(100);
+        
+        TableColumn<InvoiceResponse, String> totalCol = new TableColumn<>("Total");
+        totalCol.setCellValueFactory(cellData -> {
+            InvoiceResponse invoice = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty("$" + invoice.getTotalAmount().toString());
+        });
+        totalCol.setPrefWidth(100);
+        
+        TableColumn<InvoiceResponse, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
+        statusCol.setPrefWidth(100);
+        
+        TableColumn<InvoiceResponse, String> dueDateCol = new TableColumn<>("Due Date");
+        dueDateCol.setCellValueFactory(cellData -> {
+            InvoiceResponse invoice = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(
+                invoice.getDueDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+            );
+        });
+        dueDateCol.setPrefWidth(100);
+        
+        invoiceTable.getColumns().addAll(invoiceNumberCol, roomCol, checkInCol, checkOutCol, totalCol, statusCol, dueDateCol);
+        
+        // Action buttons
+        HBox actionButtons = new HBox(10);
+        Button viewInvoiceBtn = new Button("View & Print Invoice");
+        viewInvoiceBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;");
+        viewInvoiceBtn.setOnAction(e -> {
+            InvoiceResponse selectedInvoice = invoiceTable.getSelectionModel().getSelectedItem();
+            if (selectedInvoice != null) {
+                try {
+                    InvoiceViewer viewer = new InvoiceViewer(selectedInvoice);
+                    Stage invoiceStage = new Stage();
+                    viewer.start(invoiceStage);
+                } catch (Exception ex) {
+                    showErrorDialog("Error opening invoice: " + ex.getMessage());
+                }
+            } else {
+                showErrorDialog("Please select an invoice to view.");
+            }
+        });
+        
+        actionButtons.getChildren().addAll(viewInvoiceBtn);
+        
+        layout.getChildren().addAll(title, controls, invoiceTable, actionButtons);
+        
+        // Store reference to table for loading data
+        this.invoiceTable = invoiceTable;
+        this.invoices = invoices;
+        
+        return layout;
+    }
+
+    private void loadMyInvoices() {
+        if (currentVisitorId == null) {
+            showErrorDialog("Error: Visitor ID not set.");
+            return;
+        }
+        
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/invoices/visitor/" + currentVisitorId))
+                    .header("Content-Type", "application/json")
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() == 200) {
+                InvoiceResponse[] invoiceArray = objectMapper.readValue(response.body(), InvoiceResponse[].class);
+                invoices.clear();
+                invoices.addAll(java.util.Arrays.asList(invoiceArray));
+            } else {
+                showErrorDialog("Failed to load invoices: " + response.body());
+            }
+        } catch (IOException | InterruptedException e) {
+            showErrorDialog("Error loading invoices: " + e.getMessage());
+        }
     }
 
     public static void main(String[] args) {
